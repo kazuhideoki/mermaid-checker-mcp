@@ -8,7 +8,7 @@
     "start": "wrangler dev --port 8787",
     "test": "vitest",
     "cf-typegen": "wrangler types",
-    "mcp": "node src/stdio-server.mjs"
+    "mcp": "bun run src/stdio-server.ts"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.19",

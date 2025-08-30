@@ -61,5 +61,43 @@ describe('Hello World MCP server (minimal)', () => {
     const text = callPayload?.result?.content?.[0]?.text ?? ''
     expect(text).toContain('Hello, Kaz!')
   })
-})
 
+  it('POST /messages tools -> mermaid_validate tool call (valid)', async () => {
+    const callReq = {
+      jsonrpc: '2.0',
+      id: 4,
+      method: 'tools/call',
+      params: { name: 'mermaid_validate', arguments: { code: 'graph TD; A-->B;' } },
+    }
+    const callRes = await SELF.fetch('http://dummy/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(callReq),
+    })
+    expect(callRes.status).toBe(200)
+    const payload = await callRes.json()
+    const text = payload?.result?.content?.[0]?.text ?? ''
+    const parsed = JSON.parse(text)
+    expect(parsed.valid).toBe(true)
+  })
+
+  it('POST /messages tools -> mermaid_validate tool call (invalid)', async () => {
+    const callReq = {
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'tools/call',
+      params: { name: 'mermaid_validate', arguments: { code: 'graph TD A-- B;' } },
+    }
+    const callRes = await SELF.fetch('http://dummy/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(callReq),
+    })
+    expect(callRes.status).toBe(200)
+    const payload = await callRes.json()
+    const text = payload?.result?.content?.[0]?.text ?? ''
+    const parsed = JSON.parse(text)
+    expect(parsed.valid).toBe(false)
+    expect(typeof parsed.reason === 'string').toBe(true)
+  })
+})

@@ -1,10 +1,11 @@
 flowchart LR
-  subgraph Forward_順伝播
+  subgraph Forward["Forward（順伝播）"]
     X0["入力埋め込み X^0"] --> L1["層1 (注意→FFN→残差+LN)"] --> L2["層2"] --> L3["… 層N"]
     L3 --> Logits["最終線形 → ソフトマックス"]
     Logits --> Loss["損失(クロスエントロピー)"]
   end
 
-  subgraph Backward_逆伝播
+  subgraph Backward["Backward（逆伝播）"]
     Loss -. 勾配 .-> Logits -.-> L3 -.-> L2 -.-> L1 -.-> X0
   end
+

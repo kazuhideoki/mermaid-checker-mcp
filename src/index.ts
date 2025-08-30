@@ -51,6 +51,9 @@ const hub = new SseHub()
 
 // Application layer: Hello use-case
 import { greet } from './application/hello'
+// Mermaid parser (full mermaid). Parse は DOM 依存なく構文チェックに利用可能。
+// Cloudflare Workers でもバンドル可能なため、まずはこちらを使用する。
+import { getWorkerTools, callTool } from './mcp/tools'
 
 // Minimal MCP handlers (subset): initialize, tools/list, tools/call, ping
 async function handleRpc(req: JsonRpcRequest): Promise<JsonRpcResponse> {
@@ -76,40 +79,17 @@ async function handleRpc(req: JsonRpcRequest): Promise<JsonRpcResponse> {
           jsonrpc: '2.0',
           id,
           result: {
-            tools: [
-              {
-                name: 'hello',
-                description: '名前を受け取り、Helloを返す最小ツール',
-                input_schema: {
-                  type: 'object',
-                  properties: {
-                    name: { type: 'string', description: 'あいさつする相手の名前' },
-                  },
-                  required: ['name'],
-                },
-              },
-            ],
+            tools: getWorkerTools(),
           },
         }
       }
       case 'tools/call': {
         const { name, arguments: args } = req.params ?? {}
-        if (name !== 'hello') {
-          return {
-            jsonrpc: '2.0',
-            id,
-            error: { code: -32601, message: `Unknown tool: ${name}` },
-          }
+        const result = await callTool(String(name), args ?? {})
+        if (result.isError) {
+          return { jsonrpc: '2.0', id, error: { code: -32601, message: `Unknown tool: ${name}` } }
         }
-        const text = greet((args?.name ?? '').toString())
-        return {
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [{ type: 'text', text }],
-            isError: false,
-          },
-        }
+        return { jsonrpc: '2.0', id, result }
       }
       default: {
         return {
