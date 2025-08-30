@@ -212,3 +212,9 @@ bunx wrangler deploy
 [9]: https://jsr.io/docs/with/cloudflare-workers?utm_source=chatgpt.com "Using JSR with Cloudflare Workers - Docs"
 [10]: https://developers.cloudflare.com/agents/model-context-protocol/tools/ "Tools · Cloudflare Agents docs"
 [11]: https://developers.cloudflare.com/workers/wrangler/configuration/?utm_source=chatgpt.com "Configuration - Wrangler · Cloudflare Workers docs"
+
+## 進捗
+
+ローカルでmermaid記法のチェックはできた。
+しかし、ChatGPTでは Deep Research でしか対応していないようで, /search と /fetch の実装が必要
+参考: https://platform.openai.com/docs/mcp
