@@ -5,6 +5,7 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
+import mermaid from 'mermaid'
 
 const server = new Server(
   { name: 'mermaid-checker-mcp', version: '0.0.1' },
@@ -25,22 +26,44 @@ server.setRequestHandler(ListToolsRequestSchema, () => ({
         required: ['name'],
       },
     },
+    {
+      name: 'mermaid_validate',
+      description: 'Mermaidの全文を受け取り構文チェックを行う',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'Mermaidコード全文' },
+        },
+        required: ['code'],
+      },
+    },
   ],
 }))
 
 // tools/call
-server.setRequestHandler(CallToolRequestSchema, (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params ?? {}
-  if (name !== 'hello') {
+  if (name === 'hello') {
+    const who = String(args?.name ?? '')
     return {
-      content: [{ type: 'text', text: `Unknown tool: ${name}` }],
-      isError: true,
+      content: [{ type: 'text', text: `Hello, ${who}!` }],
+      isError: false,
     }
   }
-  const who = String(args?.name ?? '')
+  if (name === 'mermaid_validate') {
+    const code = String(args?.code ?? '')
+    try {
+      await mermaid.parse(code)
+      const payload = { valid: true }
+      return { content: [{ type: 'text', text: JSON.stringify(payload) }], isError: false }
+    } catch (e) {
+      const payload = { valid: false, reason: e?.message ?? String(e) }
+      return { content: [{ type: 'text', text: JSON.stringify(payload) }], isError: false }
+    }
+  }
   return {
-    content: [{ type: 'text', text: `Hello, ${who}!` }],
-    isError: false,
+    content: [{ type: 'text', text: `Unknown tool: ${name}` }],
+    isError: true,
   }
 })
 
