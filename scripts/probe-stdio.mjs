@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process'
 
-const cmd = 'node'
-const args = ['src/stdio-server.mjs']
+// Run the stdio MCP server via Bun + TypeScript entry
+const cmd = 'bun'
+const args = ['run', 'src/stdio-server.ts']
 
 const child = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'inherit'] })
 

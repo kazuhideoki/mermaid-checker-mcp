@@ -62,6 +62,44 @@ describe('Hello World MCP server (minimal)', () => {
     expect(text).toContain('Hello, Kaz!')
   })
 
+  it('POST /messages tools -> search (minimum)', async () => {
+    const callReq = {
+      jsonrpc: '2.0',
+      id: 41,
+      method: 'tools/call',
+      params: { name: 'search', arguments: { query: 'mermaid validator', top_k: 3 } },
+    }
+    const res = await SELF.fetch('http://dummy/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(callReq),
+    })
+    expect(res.status).toBe(200)
+    const payload = await res.json()
+    const text = payload?.result?.content?.[0]?.text ?? ''
+    const parsed = JSON.parse(text)
+    expect(Array.isArray(parsed.items)).toBe(true)
+  })
+
+  it('POST /messages tools -> fetch (minimum)', async () => {
+    const callReq = {
+      jsonrpc: '2.0',
+      id: 42,
+      method: 'tools/call',
+      params: { name: 'fetch', arguments: { objectIds: ['doc:mermaid:validate'] } },
+    }
+    const res = await SELF.fetch('http://dummy/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(callReq),
+    })
+    expect(res.status).toBe(200)
+    const payload = await res.json()
+    const text = payload?.result?.content?.[0]?.text ?? ''
+    const parsed = JSON.parse(text)
+    expect(Array.isArray(parsed.resources)).toBe(true)
+  })
+
   it('POST /messages tools -> mermaid_validate tool call (valid)', async () => {
     const callReq = {
       jsonrpc: '2.0',
@@ -99,5 +137,24 @@ describe('Hello World MCP server (minimal)', () => {
     const parsed = JSON.parse(text)
     expect(parsed.valid).toBe(false)
     expect(typeof parsed.reason === 'string').toBe(true)
+  })
+
+  it('GET / with Accept: text/event-stream -> SSE headers', async () => {
+    const res = await SELF.fetch('http://dummy/', { headers: { accept: 'text/event-stream' } })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+  })
+
+  it('POST / (alias of /messages) -> initialize', async () => {
+    const initReq = { jsonrpc: '2.0', id: 101, method: 'initialize', params: {} }
+    const res = await SELF.fetch('http://dummy/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(initReq),
+    })
+    expect(res.status).toBe(200)
+    const payload = await res.json()
+    expect(payload.id).toBe(101)
+    expect(payload.result?.serverInfo?.name).toBeDefined()
   })
 })

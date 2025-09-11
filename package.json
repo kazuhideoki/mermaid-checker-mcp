@@ -1,25 +1,26 @@
 {
-  "name": "mermaid-checker-mcp",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev --port 8787",
-    "start": "wrangler dev --port 8787",
-    "test": "vitest",
-    "cf-typegen": "wrangler types",
-    "mcp": "bun run src/stdio-server.ts"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.19",
-    "typescript": "^5.5.2",
-    "vitest": "~3.2.0",
-    "wrangler": "^4.33.1"
-  },
-  "dependencies": {
-    "@mermaid-js/parser": "^0.6.2",
-    "@modelcontextprotocol/sdk": "^0.5.0",
-    "mermaid": "^11.10.1",
-    "zod": "^3.25.76"
-  }
+	"name": "mermaid-checker-mcp",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev --port 8787",
+		"start": "wrangler dev --port 8787",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"mcp": "bun run src/stdio-server.ts",
+		"tail": "wrangler tail"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"typescript": "^5.5.2",
+		"vitest": "~3.2.0",
+		"wrangler": "^4.33.1"
+	},
+	"dependencies": {
+		"@mermaid-js/parser": "^0.6.2",
+		"@modelcontextprotocol/sdk": "^0.5.0",
+		"mermaid": "^11.10.1",
+		"zod": "^3.25.76"
+	}
 }
