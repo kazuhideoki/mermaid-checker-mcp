@@ -53,7 +53,7 @@ const hub = new SseHub()
 import { greet } from './application/hello'
 // Mermaid parser (full mermaid). Parse は DOM 依存なく構文チェックに利用可能。
 // Cloudflare Workers でもバンドル可能なため、まずはこちらを使用する。
-import { getWorkerTools, getSdkTools, callTool } from './mcp/tools'
+import { getSdkTools, callTool } from './mcp/tools'
 
 // Minimal MCP handlers (subset): initialize, tools/list, tools/call, ping
 async function handleRpc(req: JsonRpcRequest): Promise<JsonRpcResponse> {
@@ -113,64 +113,36 @@ function sseHeaders() {
     'content-type': 'text/event-stream; charset=utf-8',
     'cache-control': 'no-cache',
     connection: 'keep-alive',
-    // allow browser-based clients if needed (ChatGPT may run in browser or server)
-    'access-control-allow-origin': '*',
   }
 }
 
-function toSseEvent(data: unknown, eventName?: string) {
+function toSseEvent(data: unknown) {
   const payload = typeof data === 'string' ? data : JSON.stringify(data)
-  const eventLine = eventName ? `event: ${eventName}\n` : ''
-  return `${eventLine}data: ${payload}\n\n`
+  return `data: ${payload}\n\n`
 }
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url)
-    const rawPath = url.pathname
-    const pathname = rawPath.endsWith('/') && rawPath !== '/' ? rawPath.slice(0, -1) : rawPath
-
-    // Basic CORS preflight for POST /messages
-    if (request.method === 'OPTIONS') {
-      const reqHeaders = request.headers
-      if (reqHeaders.get('access-control-request-method')) {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'POST, OPTIONS',
-            'access-control-allow-headers': 'content-type, authorization',
-            'access-control-max-age': '600',
-          },
-        })
-      }
-    }
+    const { pathname } = url
 
     if (request.method === 'GET' && pathname === '/healthz') {
       return new Response('ok', { status: 200 })
     }
 
-    const acceptsEventStream = (request.headers.get('accept') || '').includes('text/event-stream')
-
-    // SSE endpoint: allow both explicit /sse and root path when Accept is event-stream
-    if (request.method === 'GET' && (pathname === '/sse' || (pathname === '/' && acceptsEventStream))) {
+    if (request.method === 'GET' && pathname === '/sse') {
       let cleanup: (() => void) | undefined
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
           const encoder = new TextEncoder()
-          const send: SendFn = (msg) => controller.enqueue(encoder.encode(toSseEvent(msg, 'message')))
+          const send: SendFn = (msg) => controller.enqueue(encoder.encode(toSseEvent(msg)))
           const unsubscribe = hub.subscribe(send)
 
-          // Per MCP SSE spec: announce POST endpoint via an endpoint event
-          // Use absolute URL to avoid client URL-join pitfalls
-          const endpointUrl = `${url.origin}/messages`
-          controller.enqueue(encoder.encode(toSseEvent(endpointUrl, 'endpoint')))
-
-          // optional ready ping so clients know stream is alive
-          controller.enqueue(encoder.encode(toSseEvent({ type: 'ready', ts: Date.now() }, 'system')))
+          // initial hello message so clients know stream is alive
+          send({ type: 'ready', ts: Date.now() })
 
           // send heartbeat every 25s to keep connections alive through proxies
-          const interval = setInterval(() => controller.enqueue(encoder.encode(toSseEvent({ type: 'heartbeat', ts: Date.now() }, 'system'))), 25_000)
+          const interval = setInterval(() => send({ type: 'heartbeat', ts: Date.now() }), 25_000)
           // send initial comment to establish stream for some clients
           controller.enqueue(encoder.encode(': keep-alive\n\n'))
           // Cleanup closure
@@ -201,10 +173,7 @@ export default {
 
       return new Response(JSON.stringify(Array.isArray(body) ? responses : responses[0]), {
         status: 200,
-        headers: {
-          'content-type': 'application/json; charset=utf-8',
-          'access-control-allow-origin': '*',
-        },
+        headers: { 'content-type': 'application/json; charset=utf-8' },
       })
     }
 
@@ -213,7 +182,7 @@ export default {
       [
         'mermaid-checker-mcp (Hello World) — endpoints:',
         '- GET  /healthz     -> 200 OK',
-        '- GET  /sse (or GET / with Accept: text/event-stream) -> SSE',
+        '- GET  /sse         -> Server-Sent Events stream',
         '- POST /messages    -> JSON-RPC 2.0 {method:"initialize"|"tools/list"|"tools/call"}',
       ].join('\n'),
       { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } },
